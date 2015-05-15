@@ -77,7 +77,7 @@ class Jusolink
 
 		if($PerPage != null){
 			if($PerPage < 0) $PerPage = 20;
-			if($PerPage > 50) $PerPage = 50;
+			if($PerPage > 100) $PerPage = 100;
 		}
 
 		$url = '/Search';
