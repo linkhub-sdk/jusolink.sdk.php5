@@ -27,7 +27,8 @@ class Jusolink
     
     private $Linkhub;
 	private $token;
-		    
+	private $__requestMode = LINKHUB_COMM_MODE;
+	
     public function __construct($LinkID,$SecretKey) {
     	$this->Linkhub = Linkhub::getInstance($LinkID,$SecretKey);
     	$this->scopes[] = '200';
@@ -113,25 +114,45 @@ class Jusolink
 
 	}
          
-    protected function executeCURL($uri,$CorpNum = null,$userID = null,$isPost = false, $action = null, $postdata = null,$isMultiPart=false) {
-		$http = curl_init((Jusolink::ServiceURL).$uri);
-		$header = array();
-
-		$header[] = 'Authorization: Bearer '.$this->getsession_Token(null);
-		$header[] = 'x-api-version: '.Jusolink::Version;
-
-		curl_setopt($http, CURLOPT_HTTPHEADER,$header);
-		curl_setopt($http, CURLOPT_RETURNTRANSFER, TRUE);
-		
-		$responseJson = curl_exec($http);
-		$http_status = curl_getinfo($http, CURLINFO_HTTP_CODE);
-		
-		curl_close($http);
-
-		if($http_status != 200) {
-			throw new JusoLinkException($responseJson);
+    protected function executeCURL($url,$isPost = false, $postdata = null) {
+    	if($this->__requestMode != "STREAM") {
+	    	$http = curl_init((Jusolink::ServiceURL).$uri);
+			$header = array();
+			$header[] = 'Authorization: Bearer '.$this->getsession_Token(null);
+			$header[] = 'x-api-version: '.Jusolink::Version;
+			curl_setopt($http, CURLOPT_HTTPHEADER,$header);
+			curl_setopt($http, CURLOPT_RETURNTRANSFER, TRUE);
+			
+			$responseJson = curl_exec($http);
+			$http_status = curl_getinfo($http, CURLINFO_HTTP_CODE);
+			
+			curl_close($http);
+			if($http_status != 200) {
+				throw new JusoLinkException($responseJson);
+			}
+			return json_decode($responseJson);
+	    } else { 
+			$params = array('http' => array(
+					 'ignore_errors' => TRUE,
+					 'method' => 'GET'
+	                ));
+	        	    
+			if($isPost) {
+				$params['http']['method'] = 'POST';
+				$params['http']['content'] = $postdata;
+	        } 
+	  	
+	  		$params['http']['header'] = 'Authorization: Bearer '.$this->getsession_Token(null)."\r\n".'x-api-version: '.Jusolink::Version;
+	  		
+	  		$ctx = stream_context_create($params);
+	  		$response = file_get_contents((Jusolink::ServiceURL).$url, false, $ctx);
+	  		
+	  		if ($http_response_header[0] != "HTTP/1.1 200 OK") {
+	    		throw new JusoLinkException($response);
+	  		}
+	  		
+			return json_decode($response);
 		}
-		return json_decode($responseJson);
 	}
 }
 
