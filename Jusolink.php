@@ -116,7 +116,7 @@ class Jusolink
          
     protected function executeCURL($url,$isPost = false, $postdata = null) {
     	if($this->__requestMode != "STREAM") {
-	    	$http = curl_init((Jusolink::ServiceURL).$uri);
+	    	$http = curl_init((Jusolink::ServiceURL).$url);
 			$header = array();
 			$header[] = 'Authorization: Bearer '.$this->getsession_Token(null);
 			$header[] = 'x-api-version: '.Jusolink::Version;
