@@ -120,20 +120,23 @@ class Jusolink
 			$header = array();
 			$header[] = 'Authorization: Bearer '.$this->getsession_Token(null);
 			$header[] = 'x-api-version: '.Jusolink::Version;
+
 			curl_setopt($http, CURLOPT_HTTPHEADER,$header);
 			curl_setopt($http, CURLOPT_RETURNTRANSFER, TRUE);
+			curl_setopt($http, CURLOPT_ENCODING, 'gzip,deflate');
 			
 			$responseJson = curl_exec($http);
 			$http_status = curl_getinfo($http, CURLINFO_HTTP_CODE);
-			
+
 			curl_close($http);
 			if($http_status != 200) {
 				throw new JusoLinkException($responseJson);
 			}
 			return json_decode($responseJson);
-	    } else { 
+	    } else {
 			$params = array('http' => array(
 					 'ignore_errors' => TRUE,
+					 'protocol_version' => '1.1',
 					 'method' => 'GET'
 	                ));
 	        	    
@@ -141,12 +144,28 @@ class Jusolink
 				$params['http']['method'] = 'POST';
 				$params['http']['content'] = $postdata;
 	        } 
-	  	
-	  		$params['http']['header'] = 'Authorization: Bearer '.$this->getsession_Token(null)."\r\n".'x-api-version: '.Jusolink::Version;
 	  		
+			$header[] = 'Accept-Encoding: gzip,deflate';
+			$header[] = 'Connection: close';
+	  		$header[] = 'Authorization: Bearer '.$this->getsession_Token(null);
+			$header[] = 'x-api-version: '.Jusolink::Version;
+
+			if($header !== null) {
+				$head = "";
+				foreach($header as $h) {
+		  			$head = $head . $h . "\r\n";
+		    	}
+		    	$params['http']['header'] = substr($head,0,-2);
+		  	}
+  		
 	  		$ctx = stream_context_create($params);
 	  		$response = file_get_contents((Jusolink::ServiceURL).$url, false, $ctx);
-	  		
+
+			$is_gzip = 0 === mb_strpos($response , "\x1f" . "\x8b" . "\x08");
+			if($is_gzip){
+				$response = $this->Linkhub->gzdecode($response);		
+			}
+
 	  		if ($http_response_header[0] != "HTTP/1.1 200 OK") {
 	    		throw new JusoLinkException($response);
 	  		}
